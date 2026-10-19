@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | FinPilot Flight Deck</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body style="background-color: var(--navy-950);">
+  <div class="login-split-page">
+    <!-- Left Hero Panel -->
+    <div class="login-hero-panel">
+      <div>
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px;">
+          <div class="brand-icon">✈</div>
+          <div>
+            <h1 style="font-size: 24px; font-weight: 800; color: #fff;">FinPilot</h1>
+            <span style="color: var(--amber-500); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">Startup Financial Flight Control</span>
+          </div>
+        </div>
+
+        <h2 style="font-size: 32px; font-weight: 800; line-height: 1.25; margin-bottom: 16px; color: #f8fafc;">
+          Pilot your startup’s financial runway with flight-grade precision.
+        </h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; max-width: 480px; margin-bottom: 32px;">
+          Engineered for university database rigor on Oracle Database 21c Express Edition. Real-time cash runway computation, audit logging via PL/SQL triggers, and granular role-based permissions.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; max-width: 420px;">
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <span style="font-size: 18px;">🛡️</span>
+            <div>
+              <div style="font-weight: 600; color: #f1f5f9; font-size: 13.5px;">Authentic Oracle XE Database Engine</div>
+              <div style="color: #64748b; font-size: 12px;">Thin driver connectivity, bind parameter enforcement, and live query instrumentation.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <span style="font-size: 18px;">📼</span>
+            <div>
+              <div style="font-weight: 600; color: #f1f5f9; font-size: 13.5px;">Trigger-Driven Black Box Audit Trail</div>
+              <div style="color: #64748b; font-size: 12px;">Automatic tracking of inserts, updates, and deletes capturing SYS_CONTEXT client user identities.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <span style="font-size: 18px;">⛽</span>
+            <div>
+              <div style="font-weight: 600; color: #f1f5f9; font-size: 13.5px;">Real-Time Runway & Burn Analytics</div>
+              <div style="color: #64748b; font-size: 12px;">Flight status indicators: Cleared for takeoff, Turbulence ahead, and Low fuel warning.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #64748b;">
+        FinPilot Flight Operations &bull; Database Systems Coursework
+      </div>
+    </div>
+
+    <!-- Right Login Form Panel -->
+    <div class="login-form-panel">
+      <div style="max-width: 380px; width: 100%; margin: 0 auto;">
+        <div style="margin-bottom: 28px;">
+          <h3 style="font-size: 22px; font-weight: 700; color: var(--navy-900);">Cockpit Access</h3>
+          <p style="font-size: 13px; color: var(--slate-600); margin-top: 4px;">Sign in to inspect financial telemetry and runway logs.</p>
+        </div>
+
+        {% if error %}
+          <div style="background-color: var(--rose-100); border: 1px solid #fecaca; color: #991b1b; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px;">
+            ⚠️ {{ error }}
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+          <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-control" style="width: 100%;" required autocomplete="username" placeholder="e.g. admin">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input type="password" id="password" name="password" class="form-control" style="width: 100%;" required autocomplete="current-password" placeholder="••••••••">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 14px; margin-top: 8px;">
+            Engage Flight Controls &rarr;
+          </button>
+        </form>
+
+        <!-- Quick Fill Demo Accounts -->
+        <div class="quick-accounts-box">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate-600); margin-bottom: 8px;">
+            Demo Flight Crew Credentials (Click to fill)
+          </div>
+
+          <button type="button" class="quick-acc-btn" onclick="fillCreds('admin', 'admin123')">
+            <div>
+              <strong>admin</strong> <span style="color: var(--slate-600);">(admin123)</span>
+            </div>
+            <span class="user-role-pill role-admin">ADMIN &bull; Full Control</span>
+          </button>
+
+          <button type="button" class="quick-acc-btn" onclick="fillCreds('accountant', 'acc123')">
+            <div>
+              <strong>accountant</strong> <span style="color: var(--slate-600);">(acc123)</span>
+            </div>
+            <span class="user-role-pill role-accountant">ACCOUNTANT &bull; Add/Edit</span>
+          </button>
+
+          <button type="button" class="quick-acc-btn" onclick="fillCreds('viewer', 'view123')">
+            <div>
+              <strong>viewer</strong> <span style="color: var(--slate-600);">(view123)</span>
+            </div>
+            <span class="user-role-pill role-viewer">VIEWER &bull; Read-Only</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fillCreds(u, p) {
+      document.getElementById('username').value = u;
+      document.getElementById('password').value = p;
+      document.getElementById('username').focus();
+    }
+  </script>
+</body>
+</html>

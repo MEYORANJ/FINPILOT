@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Flight Deck{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Flight Deck Telemetry</h2>
+  <p class="page-subtitle">Real-time financial telemetry calculated via Oracle SQL for <strong>{{ current_startup.name }}</strong> ({{ current_startup.industry }} sector)</p>
+</div>
+
+<!-- Flight Status Strip -->
+<div id="status-strip" class="status-strip status-success">
+  <div class="status-left">
+    <div id="status-icon" class="status-icon-badge">✈</div>
+    <div>
+      <div id="status-title" class="status-title">Calibrating flight parameters...</div>
+      <div id="status-desc" class="status-desc">Loading telemetry from Oracle Database...</div>
+    </div>
+  </div>
+  <div class="status-right">
+    <div id="status-runway" class="status-runway-val">-- mo</div>
+    <div class="status-runway-label">Estimated Runway</div>
+  </div>
+</div>
+
+<!-- Six KPI Cards Grid with Plain-English Captions -->
+<div class="kpi-grid">
+  <!-- 1. Cash in Bank -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">Cash in Bank</span>
+      <div class="kpi-icon kpi-icon-cash">🏦</div>
+    </div>
+    <div id="kpi-cash" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Real-time liquid bank balance: Opening cash + cleared income - paid expenses.</div>
+  </div>
+
+  <!-- 2. Revenue -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">Revenue</span>
+      <div class="kpi-icon kpi-icon-rev">📈</div>
+    </div>
+    <div id="kpi-revenue" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Total paid income realized from customer billings and client contracts.</div>
+  </div>
+
+  <!-- 3. Expenses -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">Expenses</span>
+      <div class="kpi-icon kpi-icon-exp">📉</div>
+    </div>
+    <div id="kpi-expenses" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Operating cash outflows disbursed for salaries, infrastructure, and tools.</div>
+  </div>
+
+  <!-- 4. Net Profit / Loss -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">Net Profit / Loss</span>
+      <div class="kpi-icon kpi-icon-profit">⚖️</div>
+    </div>
+    <div id="kpi-profit" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Operating surplus remaining after covering all cleared disbursements.</div>
+  </div>
+
+  <!-- 5. To Collect (Receivables) -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">To Collect</span>
+      <div class="kpi-icon kpi-icon-rec">⏳</div>
+    </div>
+    <div id="kpi-receivables" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Pending incoming receipts from issued invoices awaiting customer payment.</div>
+  </div>
+
+  <!-- 6. To Pay (Payables) -->
+  <div class="kpi-card">
+    <div class="kpi-card-header">
+      <span class="kpi-title">To Pay</span>
+      <div class="kpi-icon kpi-icon-pay">💳</div>
+    </div>
+    <div id="kpi-payables" class="kpi-value">₹0</div>
+    <div class="kpi-caption">Unpaid obligations and vendor retainers committed in pending status.</div>
+  </div>
+</div>
+
+<!-- Middle Section: Runway Semicircle Gauge & 6-Month Chart -->
+<div class="charts-grid">
+  <!-- Runway Gauge Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Runway Gauge</div>
+        <div class="card-subtitle">Burn rate & remaining operational endurance</div>
+      </div>
+    </div>
+    <div class="gauge-container">
+      <svg class="gauge-svg" viewBox="0 0 240 135">
+        <!-- Background Track Segments: Red (<4 mo), Amber (4-9 mo), Green (9+ mo) -->
+        <path d="M 25 120 A 95 95 0 0 1 60 55" fill="none" stroke="#ef4444" stroke-width="16" stroke-linecap="round" />
+        <path d="M 64 51 A 95 95 0 0 1 120 25" fill="none" stroke="#f59e0b" stroke-width="16" />
+        <path d="M 120 25 A 95 95 0 0 1 215 120" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" />
+
+        <!-- Gauge Center Pivot -->
+        <circle cx="120" cy="120" r="8" fill="#1c2541" />
+        
+        <!-- Needle Pointer (Rotates around 120, 120) -->
+        <!-- Range: -90deg (0 mo) to +90deg (24+ mo) -->
+        <line id="gauge-needle" x1="120" y1="120" x2="120" y2="40" stroke="#0b132b" stroke-width="4" stroke-linecap="round" transform="rotate(0 120 120)" style="transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);" />
+      </svg>
+      <div class="gauge-metrics">
+        <div id="gauge-value-text" class="gauge-val">-- mo</div>
+        <div class="gauge-label">Months of Flight Fuel Remaining</div>
+        <div id="gauge-burn-text" class="gauge-burn-note">Calculating average monthly burn...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js 6-Month Revenue vs Expenses Bar Chart -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">6-Month Flight Trajectory</div>
+        <div class="card-subtitle">Monthly revenue vs expenses over the last 6 calendar months</div>
+      </div>
+    </div>
+    <div style="height: 230px; position: relative;">
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Section: Top Expense Categories & Recent Transactions -->
+<div class="bottom-grid">
+  <!-- Top 6 Expense Categories -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Top 6 Outflow Categories</div>
+        <div class="card-subtitle">Leading expense accounts driving operational burn</div>
+      </div>
+    </div>
+    <div id="top-expenses-list">
+      <div style="color: var(--slate-600); font-size: 13px;">Loading expense breakdown...</div>
+    </div>
+  </div>
+
+  <!-- 6 Most Recent Transactions -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Recent Transactions</div>
+        <div class="card-subtitle">Latest 6 financial events recorded on the ledger</div>
+      </div>
+      <a href="{{ url_for('transactions') }}" class="btn btn-secondary btn-sm">View All &rarr;</a>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="recent-transactions-tbody">
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--slate-600);">Loading ledger records...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let monthlyChart = null;
+
+async function loadDashboardData() {
+  try {
+    const res = await fetch('/api/dashboard');
+    if (!res.ok) throw new Error('Failed to fetch dashboard data');
+    const data = await res.json();
+
+    // 1. Populate KPIs
+    const k = data.kpis;
+    document.getElementById('kpi-cash').textContent = formatRupee(k.cash_in_bank);
+    document.getElementById('kpi-revenue').textContent = formatRupee(k.revenue);
+    document.getElementById('kpi-expenses').textContent = formatRupee(k.expenses);
+    document.getElementById('kpi-profit').textContent = formatRupee(k.profit);
+    document.getElementById('kpi-profit').style.color = k.profit >= 0 ? '#059669' : '#dc2626';
+    document.getElementById('kpi-receivables').textContent = formatRupee(k.receivables);
+    document.getElementById('kpi-payables').textContent = formatRupee(k.payables);
+
+    // 2. Populate Status Strip
+    const strip = document.getElementById('status-strip');
+    const statusIcon = document.getElementById('status-icon');
+    const statusTitle = document.getElementById('status-title');
+    const statusDesc = document.getElementById('status-desc');
+    const statusRunway = document.getElementById('status-runway');
+
+    strip.className = `status-strip status-${k.status_level}`;
+    statusTitle.textContent = k.status;
+
+    if (k.runway_months !== null) {
+      statusRunway.textContent = `${k.runway_months} mo`;
+      document.getElementById('gauge-value-text').textContent = `${k.runway_months} Months`;
+      document.getElementById('gauge-burn-text').textContent = `Average monthly burn: ${formatRupee(k.burn)}/month`;
+      
+      // Calculate gauge angle: 0 mo -> -90deg, 24 mo -> +90deg
+      const clampedRunway = Math.min(24, Math.max(0, k.runway_months));
+      const angle = (clampedRunway / 24) * 180 - 90;
+      document.getElementById('gauge-needle').setAttribute('transform', `rotate(${angle} 120 120)`);
+    } else {
+      statusRunway.textContent = `Cash Flow Positive`;
+      document.getElementById('gauge-value-text').textContent = `Infinite`;
+      document.getElementById('gauge-burn-text').textContent = `Zero burn (Cash flow positive over last 90 days)`;
+      document.getElementById('gauge-needle').setAttribute('transform', `rotate(85 120 120)`);
+    }
+
+    if (k.status_level === 'success') {
+      statusIcon.textContent = '✈️';
+      statusDesc.textContent = k.runway_months !== null
+        ? `Startup runway extends beyond ${k.runway_months} months with comfortable operating reserves.`
+        : 'Revenues comfortably exceed expenses. Operational cash generation is fully self-sustaining.';
+    } else if (k.status_level === 'warning') {
+      statusIcon.textContent = '⚠️';
+      statusDesc.textContent = `Runway between 4 and 9 months (${k.runway_months} mo). Prudent monitoring of burn rate advised.`;
+    } else {
+      statusIcon.textContent = '🚨';
+      statusDesc.textContent = `Low fuel warning! Critical cash reserves under 4 months (${k.runway_months} mo). Immediate financing needed.`;
+    }
+
+    // 3. Render Chart.js Monthly Chart
+    renderMonthlyChart(data.monthly_trends);
+
+    // 4. Render Top Expense Categories
+    renderTopExpenses(data.top_expenses, k.expenses);
+
+    // 5. Render Recent Transactions
+    renderRecentTransactions(data.recent_transactions);
+
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    showToast('Failed to load telemetry: ' + err.message, 'error');
+  }
+}
+
+function renderMonthlyChart(trends) {
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  const labels = trends.map(t => t.month_label);
+  const revenueData = trends.map(t => t.revenue);
+  const expenseData = trends.map(t => t.expenses);
+
+  if (monthlyChart) {
+    monthlyChart.destroy();
+  }
+
+  monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: revenueData,
+          backgroundColor: '#10b981',
+          borderRadius: 4
+        },
+        {
+          label: 'Expenses',
+          data: expenseData,
+          backgroundColor: '#f59e0b',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => '₹' + (value / 1000).toFixed(0) + 'k'
+          },
+          grid: {
+            color: '#f1f5f9'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            font: { size: 12, weight: 600 },
+            usePointStyle: true,
+            boxWidth: 8
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: context => ` ${context.dataset.label}: ${formatRupee(context.raw)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTopExpenses(categories, totalExpenses) {
+  const container = document.getElementById('top-expenses-list');
+  if (!categories || categories.length === 0) {
+    container.innerHTML = '<div style="color: var(--slate-600); font-size: 13px;">No expense categories recorded.</div>';
+    return;
+  }
+
+  const maxCategoryAmt = Math.max(...categories.map(c => c.total_amount), 1);
+
+  container.innerHTML = categories.map(cat => {
+    const pct = Math.round((cat.total_amount / maxCategoryAmt) * 100);
+    return `
+      <div class="expense-item">
+        <div class="expense-item-info">
+          <span class="expense-item-name">${escapeHtml(cat.category_name)}</span>
+          <span class="expense-item-amount">${formatRupee(cat.total_amount)}</span>
+        </div>
+        <div class="expense-bar-bg">
+          <div class="expense-bar-fill" style="width: ${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRecentTransactions(txns) {
+  const tbody = document.getElementById('recent-transactions-tbody');
+  if (!txns || txns.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--slate-600);">No transactions logged yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = txns.map(t => {
+    const isIncome = t.txn_type === 'INCOME';
+    const isPaid = t.payment_status === 'PAID';
+    return `
+      <tr>
+        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--slate-600);">${t.txn_date}</td>
+        <td style="font-weight: 600;">${escapeHtml(t.account_name)}</td>
+        <td>
+          <span class="badge ${isIncome ? 'badge-income' : 'badge-expense'}">
+            ${isIncome ? '↑ INCOME' : '↓ EXPENSE'}
+          </span>
+        </td>
+        <td style="font-weight: 700; ${isIncome ? 'color: #059669;' : 'color: #1e293b;'}">
+          ${isIncome ? '+' : '-'}${formatRupee(t.amount)}
+        </td>
+        <td>
+          <span class="badge ${isPaid ? 'badge-paid' : 'badge-pending'}">
+            ${isPaid ? 'PAID' : 'PENDING'}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboardData);
+</script>
+{% endblock %}

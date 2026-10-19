@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions Ledger{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h2 class="page-title">Flight Ledger & Transactions</h2>
+    <p class="page-subtitle">Inspect, filter, navigate, and log financial transactions for <strong>{{ current_startup.name }}</strong></p>
+  </div>
+  {% if current_user.role in ['ADMIN', 'ACCOUNTANT'] %}
+    <button id="btn-add-transaction" class="btn btn-primary" type="button">
+      <span>➕</span> Log Transaction
+    </button>
+  {% endif %}
+</div>
+
+<!-- Record Navigator Card (Direct DB Offset Fetch) -->
+<div class="navigator-card">
+  <div>
+    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--amber-500); font-weight: 700;">
+      Cockpit Direct DB Navigator
+    </div>
+    <div style="font-size: 15px; font-weight: 700; margin-top: 2px;">
+      Flight Record Telemetry
+    </div>
+  </div>
+
+  <div class="nav-buttons-cluster">
+    <button id="btn-nav-first" class="btn-nav" type="button" title="First Record">|◀ First</button>
+    <button id="btn-nav-prev" class="btn-nav" type="button" title="Previous Record">◀ Prev</button>
+    <div id="nav-pos-display" class="nav-counter">Record 1 of 0</div>
+    <button id="btn-nav-next" class="btn-nav" type="button" title="Next Record">Next ▶</button>
+    <button id="btn-nav-last" class="btn-nav" type="button" title="Last Record">Last ▶|</button>
+  </div>
+
+  <div id="nav-detail-card" class="nav-record-detail">
+    <div style="color: #94a3b8; font-size: 12px;">Loading initial record...</div>
+  </div>
+</div>
+
+<!-- Controls & Filters Bar -->
+<div class="controls-bar">
+  <div class="filters-group">
+    <!-- Description search -->
+    <input type="text" id="filter-search" class="form-control" placeholder="Search description (e.g. rent, payroll)..." style="min-width: 260px;">
+
+    <!-- Type filter -->
+    <select id="filter-type" class="form-control">
+      <option value="">All Types</option>
+      <option value="INCOME">Income Only</option>
+      <option value="EXPENSE">Expense Only</option>
+    </select>
+
+    <!-- Category filter -->
+    <select id="filter-account" class="form-control">
+      <option value="">All Categories</option>
+      <!-- Populated dynamically via /api/accounts -->
+    </select>
+
+    <!-- Date range -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <input type="date" id="filter-from" class="form-control" title="From Date">
+      <span style="font-size: 12px; color: var(--slate-600);">to</span>
+      <input type="date" id="filter-to" class="form-control" title="To Date">
+    </div>
+
+    <button id="btn-reset-filters" class="btn btn-secondary btn-sm" type="button">Reset</button>
+  </div>
+
+  <div style="font-size: 12.5px; color: var(--slate-600);">
+    Showing <strong id="filter-count-display">0</strong> matching records
+  </div>
+</div>
+
+<!-- Paginated Transactions Table -->
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Status</th>
+          {% if current_user.role in ['ADMIN', 'ACCOUNTANT'] %}
+            <th style="text-align: right;">Flight Action</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody id="transactions-tbody">
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 24px; color: var(--slate-600);">
+            Loading ledger transactions...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="pagination-bar" style="padding: 14px 20px; border-top: 1px solid var(--slate-200);">
+    <div id="pagination-info">Page 1 of 1</div>
+    <div style="display: flex; gap: 8px;">
+      <button id="btn-page-prev" class="btn btn-secondary btn-sm" type="button">◀ Previous Page</button>
+      <button id="btn-page-next" class="btn btn-secondary btn-sm" type="button">Next Page ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Modal Dialog -->
+<div id="txn-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title" class="modal-title">Log New Transaction</h3>
+      <button id="btn-close-modal" class="modal-close" type="button">&times;</button>
+    </div>
+    
+    <form id="txn-form">
+      <input type="hidden" id="modal-txn-id" value="">
+
+      <!-- Type Toggle -->
+      <div class="form-group">
+        <label class="form-label">Transaction Type</label>
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: 1px solid var(--slate-300); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600;">
+            <input type="radio" name="modal_txn_type" value="EXPENSE" checked onchange="handleTypeChange()">
+            <span style="color: #dc2626;">↓ Expense</span>
+          </label>
+          <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; border: 1px solid var(--slate-300); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 600;">
+            <input type="radio" name="modal_txn_type" value="INCOME" onchange="handleTypeChange()">
+            <span style="color: #059669;">↑ Income</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Category (Filtered by type) -->
+      <div class="form-group">
+        <label class="form-label" for="modal-account">Category / Account</label>
+        <select id="modal-account" class="form-control" style="width: 100%;" required>
+          <option value="">Select category...</option>
+        </select>
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label" for="modal-date">Transaction Date</label>
+        <input type="date" id="modal-date" class="form-control" style="width: 100%;" required>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label" for="modal-desc">Description (2 to 200 characters)</label>
+        <input type="text" id="modal-desc" class="form-control" style="width: 100%;" placeholder="e.g. AWS Cloud Hosting May Invoice" required minlength="2" maxlength="200">
+      </div>
+
+      <!-- Amount -->
+      <div class="form-group">
+        <label class="form-label" for="modal-amount">Amount (₹)</label>
+        <input type="number" id="modal-amount" class="form-control" style="width: 100%;" placeholder="e.g. 45000" min="0.01" step="0.01" required>
+      </div>
+
+      <!-- Payment Status -->
+      <div class="form-group">
+        <label class="form-label" for="modal-status">Payment Status</label>
+        <select id="modal-status" class="form-control" style="width: 100%;" required>
+          <option value="PAID">PAID (Cleared cash flow)</option>
+          <option value="PENDING">PENDING (Receivable / Payable)</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-cancel-modal" class="btn btn-secondary" type="button">Cancel</button>
+        <button type="submit" id="btn-save-txn" class="btn btn-primary">Save Transaction</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal Dialog -->
+<div id="delete-modal" class="modal-overlay">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: #dc2626;">Confirm Flight Record Deletion</h3>
+      <button id="btn-close-delete-modal" class="modal-close" type="button">&times;</button>
+    </div>
+    <div style="margin-bottom: 20px;">
+      <p style="font-size: 13.5px; color: var(--slate-700);">
+        Are you sure you want to permanently delete transaction <strong id="delete-txn-id-display">#0</strong>?
+      </p>
+      <p style="font-size: 12px; color: var(--slate-600); margin-top: 8px;">
+        This action will write an irreversible <code>DELETE</code> row to the Oracle <code>audit_log</code> table under your user credentials.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-cancel-delete" class="btn btn-secondary" type="button">Cancel</button>
+      <button id="btn-confirm-delete" class="btn btn-danger" type="button">Confirm Delete</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.currentUserRole = "{{ current_user.role }}";
+</script>
+<script src="{{ url_for('static', filename='js/transactions.js') }}"></script>
+{% endblock %}

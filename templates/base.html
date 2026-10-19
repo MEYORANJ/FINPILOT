@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FinPilot{% endblock %} | Startup Flight Deck</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Dark Navy Cockpit Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">✈</div>
+        <div class="brand-text">
+          <h1>FinPilot</h1>
+          <span>Flight Control</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Navigation</div>
+        
+        <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.path in ['/', '/dashboard'] %}active{% endif %}">
+          <div class="nav-link-content">
+            <span>📊</span>
+            <span>Flight Deck</span>
+          </div>
+        </a>
+
+        <a href="{{ url_for('transactions') }}" class="nav-link {% if request.path == '/transactions' %}active{% endif %}">
+          <div class="nav-link-content">
+            <span>💳</span>
+            <span>Transactions</span>
+          </div>
+        </a>
+
+        <a href="{{ url_for('audit') }}" class="nav-link {% if request.path == '/audit' %}active{% endif %}">
+          <div class="nav-link-content">
+            <span>📼</span>
+            <span>Black Box</span>
+          </div>
+        </a>
+
+        <div class="nav-section-title" style="margin-top: 16px;">Flight Operations</div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>📄</span>
+            <span>Invoices</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>🧾</span>
+            <span>Supplier Bills</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>🎯</span>
+            <span>Budgets</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>👥</span>
+            <span>Payroll</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>🔮</span>
+            <span>Forecast</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+
+        <div class="nav-link disabled">
+          <div class="nav-link-content">
+            <span>📑</span>
+            <span>Reports</span>
+          </div>
+          <span class="pill-soon">Soon</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge-container">
+          <div class="user-info">
+            <span class="user-name">{{ current_user.full_name }}</span>
+            <span class="user-role-pill role-{{ current_user.role|lower }}">{{ current_user.role }}</span>
+          </div>
+          <a href="{{ url_for('logout') }}" class="btn-logout" title="Sign Out">
+            <span>🚪</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+      <!-- Top Navigation Bar -->
+      <header class="top-bar">
+        <div class="startup-switcher-group">
+          <span class="startup-switcher-label">Startup:</span>
+          <select class="startup-select" onchange="window.location.href='/switch/' + this.value">
+            {% for s in user_startups %}
+              <option value="{{ s.startup_id }}" {% if current_startup and current_startup.startup_id == s.startup_id %}selected{% endif %}>
+                {{ s.name }} ({{ s.industry }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="top-bar-actions">
+          <button id="btn-open-sql-inspector" class="btn-sql-inspector" type="button">
+            <span class="pulse-dot"></span>
+            <span>Live SQL Inspector</span>
+            <span id="sql-query-count" style="background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 999px; font-size: 11px;">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="content-container">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Live SQL Inspector Slide-out Drawer -->
+  <div id="sql-inspector-drawer" class="sql-drawer">
+    <div class="sql-drawer-header">
+      <div>
+        <div class="sql-drawer-title">⚡ Live SQL Inspector</div>
+        <div class="sql-drawer-subtitle">Real-time Oracle 21c XE query trace (last 50 executions)</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-refresh-sql" class="btn btn-secondary btn-sm" type="button">↻ Refresh</button>
+        <button id="btn-close-sql-inspector" class="btn btn-secondary btn-sm" type="button">✕ Close</button>
+      </div>
+    </div>
+    <div id="sql-log-entries" class="sql-drawer-body">
+      <!-- Dynamically populated via app.js -->
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
